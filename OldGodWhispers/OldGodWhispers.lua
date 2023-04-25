@@ -1,8 +1,13 @@
+local whisperCooldownTime = 0
+local buttonCooldownTime = 0
+local whisperIsOnCooldown = false
+local buttonIsOnCooldown = false
+local minTime = 60
+local maxTime = 240
 
-local whisperCooldown = false
-local buttonCooldown = false
+
+
 local lastID = 0
-local randomPlayTimer
 
 -- Sound ids for all of the whispers, divided into seperate tables for each old god. --
 local function getSoundFileFromID(id)
@@ -12,7 +17,7 @@ local function getSoundFileFromID(id)
 end
 
 local function getRandom()
-    return math.random(60, 240)
+    return math.random(minTime, maxTime)
 end
 
 
@@ -72,11 +77,11 @@ local function PlaySounds(click)
     until lastID ~= soundToPlay
 
     if click then
-        if not buttonCooldown then 
+        if not buttonIsOnCooldown then 
             PlaySoundFile(getSoundFileFromID(soundToPlay), "Dialog")
             lastID = soundToPlay
-            buttonCooldown = true
-            Timer.After(5,function() buttonCooldown = false end)
+            buttonIsOnCooldown = true
+            Timer.After(buttonCooldownTime,function() buttonIsOnCooldown = false end)
         end
     else
         if OldGodWhispersDatabase['random'] == true then
@@ -200,10 +205,10 @@ frame:SetScript("OnEvent", function(self, event, arg1, ...)
             elseif arg2_1 == "QUERY_OK" then
                 SendAddonMessage("OLDGOD", "WHISPER"..":" .. GetUnitName("player"), "WHISPER", arg2_2)
             elseif arg2_1 == "WHISPER" then
-                if not whisperCooldown then
+                if not whisperIsOnCooldown then
                     PlaySounds(true)
-                    whisperCooldown = true
-                    Timer.After(60,function() whisperCooldown = false end)
+                    whisperIsOnCooldown = true
+                    Timer.After(whisperCooldownTime,function() whisperIsOnCooldown = false end)
                     SendAddonMessage("OLDGOD", "WHISPER_OK"..":" .. GetUnitName("player"), "WHISPER", arg2_2)
                     print(arg2_2.." asked the Old Ones to bless you with their gifts.")
                 else
@@ -238,10 +243,6 @@ local function AvailableCommands(msg)
         
         if OldGodWhispersDatabase['random'] == true then
            Timer.After(getRandom(), PlaySounds)
-        else
-            if randomPlayTimer then 
-                randomPlayTimer:Cancel()
-            end
         end
     elseif msg == 'cthun' then
         OldGodWhispersDatabase['cthunEnabled'] = not OldGodWhispersDatabase['cthunEnabled']
